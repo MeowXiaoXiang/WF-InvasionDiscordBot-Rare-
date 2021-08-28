@@ -19,4 +19,4 @@
 #### 請輸入三個必要的資訊在replit.com上的Secrets
 #### 1.TOKEN 2.機器人要標記的身分組ID(ALARM_ROLE_ID) 3.入侵提示頻道(ALARM_CHANNEL)
 #### 弄成如下圖即可使用 細項可自行去main.py調整
-![image](https://thumbs2.imgbox.com/9d/e0/2lxH0jyt_t.png)
+![](https://thumbs2.imgbox.com/9d/e0/2lxH0jyt_t.png "這樣")
