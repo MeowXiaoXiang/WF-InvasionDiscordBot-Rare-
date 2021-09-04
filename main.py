@@ -13,6 +13,8 @@ from discord.ext import commands
 bot = commands.Bot(command_prefix=commands.when_mentioned,intents = discord.Intents.all())
 cc = OpenCC('s2twp') #簡體中文 -> 繁體中文 (台灣, 包含慣用詞轉換)
 
+Dict = json.load(open("rawDict.json",'r',encoding='utf8'))
+
 @bot.event
 async def on_ready():
     activity = discord.Activity(type=discord.ActivityType.watching,name = "Warframe 稀有入侵任務")
@@ -48,17 +50,16 @@ async def invasions():
         else:
           attacker = fdata['attackingFaction']
           attackerRewardCount = "x" + str(fdata['attackerReward']['countedItems'][0]['count'])
-          if fdata['attackerReward']['countedItems'][0]['type'] == "Exilus Adapter Blueprint":
-            attackerReward = "Warframe 特殊功能槽連接器 藍圖"
-          else:
-            attackerReward = fdata['attackerReward']['countedItems'][0]['type']
+          attackerReward = fdata['attackerReward']['countedItems'][0]['type']
         defender = fdata['defendingFaction']
         defenderRewardCount = "x" + str(fdata['defenderReward']['countedItems'][0]['count'])
-        if fdata['defenderReward']['countedItems'][0]['type'] == "Exilus Adapter Blueprint":
-          defenderReward = "Warframe 特殊功能槽連接器 藍圖"
-        else:
-          defenderReward = fdata['defenderReward']['countedItems'][0]['type']
+        defenderReward = fdata['defenderReward']['countedItems'][0]['type']
         if ID not in db.keys() and not fdata['completed'] and fdata['eta'] != "Infinityd" and (attackerReward in target or defenderReward in target):
+          #-------------進攻方表情符號-----------------------
+          attackerReward = Dict['Reward'].get(attackerReward,attackerReward)
+          #-------------防守方表情符號-----------------------
+          defenderReward = Dict['Reward'].get(defenderReward,defenderReward)
+          #-------------------------------------------------
           embed=discord.Embed(title=node, color=0x00ff4c)
           embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/708960426758635591/853580054755541012/InvasionIcon_b.png")
           embed.add_field(name=attacker, value=f"{attackerReward}{attackerRewardCount}", inline=True)
@@ -93,7 +94,7 @@ async def invasions():
                   raw.remove_field(2)
                   completion = invasions[ID]['completion']
                   raw.add_field(name=f"進度",value=f"{'%.1f' % completion}%  |  {'%.1f' % (100 - completion)}%",inline=False)
-                  raw.set_footer(text=f"資料更新時間：{UTC_8_NOW()}\n附註：每15分鐘更新一次資料")
+                  raw.set_footer(text=f"資料更新時間：{UTC_8_NOW()} [每15分刷新一次資料]")
                 await message.edit(embed=raw)
               except Exception as e:
                 print(UTC_8_NOW,e,db[ID])
@@ -138,7 +139,7 @@ def set_logger():
 def UTC_8_NOW():
     f = '%Y-%m-%d %H:%M'
     time_delta = dt.timedelta(hours=+8)
-    utc_8_date_str = (dt.datetime.utcnow()+time_delta).strftime(f) #時間戳記UTC+8
+    utc_8_date_str = (dt.datetime.utcnow()+time_delta).strftime(f) #時間戳記
     return utc_8_date_str
 
 if __name__ == '__main__':
