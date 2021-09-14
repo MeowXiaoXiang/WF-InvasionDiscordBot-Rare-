@@ -1,6 +1,6 @@
 # InvasionBot 
 #### WARFRAME稀有入侵偵測機器人
-### 限定在REPL.IT上使用 會使用到裡面的資料庫
+### 限定在REPL.IT上使用 會使用到REPL.IT上自帶的DATABASE
 ### 請安裝下列的套件
 
 + pip install flask
