@@ -11,7 +11,7 @@ from loguru import logger
 from discord.ext import commands
 
 bot = commands.Bot(command_prefix=commands.when_mentioned,intents = discord.Intents.all())
-cc = OpenCC('s2twp') #簡體中文 -> 繁體中文 (台灣, 包含慣用詞轉換)
+cc = OpenCC('s2t') #簡體中文 -> 繁體中文 
 
 Dict = json.load(open("rawDict.json",'r',encoding='utf8'))
 
@@ -28,7 +28,7 @@ async def invasions():
     print("已新增timer變數至db")
   while True:
     print(bot.description)
-    requests.get("http://127.0.0.1:8080/") #防止機器人自行關閉 每拿資料一次會ping自己一次
+    #requests.get("http://127.0.0.1:8080/") #防止機器人自行關閉 每拿資料一次會ping自己一次
     target = ['Orokin 反應爐藍圖','Orokin 催化劑藍圖','Warframe 特殊功能槽連接器 藍圖','Forma 藍圖']
     alarm_channel_id = int(os.environ['ALARM_CHANNEL']) #警報頻道ID
     channel = bot.get_channel(alarm_channel_id)
@@ -66,14 +66,14 @@ async def invasions():
           embed.add_field(name=defender, value=f"{defenderReward}{defenderRewardCount}", inline=True)
           completion = invasions[ID]['completion']
           embed.add_field(name=f"進度",value=f"{'%.1f' % completion}%  |  {'%.1f' % (100 - completion)}%",inline=False)
-          embed.set_footer(text=f"資料更新時間：{UTC_8_NOW()}\n附註：每15分鐘更新一次資料")
+          embed.set_footer(text=f"資料更新時間：{UTC_8_NOW()}\n附註：每20分鐘更新一次資料")
           embedmsg = await channel.send("<@&"+ str(os.environ['ALARM_ROLE_ID']) +">",embed=embed)
           logger.info(str(ID)+' | '+str(embedmsg.id)+' | '+node)
           db[ID] = embedmsg.id
           print(UTC_8_NOW(),embedmsg.id)
           await asyncio.sleep(60)
           continue
-      if db["timer"] >= 15: #設定每多久做訊息編輯 多久的長度取決於設定秒數 目前60s, 設定>=15 就等於15分
+      if db["timer"] >= 20: #設定每多久做訊息編輯 多久的長度取決於設定秒數 目前60s, 設定>=20 就等於20分
         for ID in db.keys():
           if ID != "timer":
             if ID not in invasions.keys() or invasions[ID]['completed']:
@@ -94,12 +94,12 @@ async def invasions():
                   raw.remove_field(2)
                   completion = invasions[ID]['completion']
                   raw.add_field(name=f"進度",value=f"{'%.1f' % completion}%  |  {'%.1f' % (100 - completion)}%",inline=False)
-                  raw.set_footer(text=f"資料更新時間：{UTC_8_NOW()} [每15分刷新一次資料]")
+                  raw.set_footer(text=f"資料更新時間：{UTC_8_NOW()} [每20分刷新一次資料]")
                 await message.edit(embed=raw)
               except Exception as e:
                 print(UTC_8_NOW,e,db[ID])
         db["timer"] = 0
-      await asyncio.sleep(60)
+      await asyncio.sleep(60) #每60秒偵測一次
       db["timer"] = db["timer"] + 1
       print("Timer記數次數：",db['timer'],"次") #設定為60秒更新一次,一次等於60秒 這條訊息提示目前的次數
     except Exception as e:
@@ -115,9 +115,21 @@ async def cleardb(ctx):
       logger.error(str(e))
   print("清除完成db")
 
+@bot.command(name="reset" , aliases=['resettimer' , '重設timer'])
+async def reset(ctx):
+  print("重設timer為20")
+  for data in db.keys():
+    try:
+      db["timer"] = 20
+      print("timer目前為:",db["timer"])
+    except Exception as e:
+      logger.error(str(e))
+  print("重設timer完成")
+
+
 @bot.event
 async def on_disconnect():
-    requests.get("http://127.0.0.1:8080/")
+    #requests.get("http://127.0.0.1:8080/")
     logger.info('機器人已關閉')
 
 def set_logger():
@@ -144,7 +156,7 @@ def UTC_8_NOW():
 
 if __name__ == '__main__':
     set_logger()
-    keep_alive.keep_alive()
+    keep_alive.awake('', True) #如果報錯的話 正常 請輸入你replit右上角的網址即可
     bot.loop.create_task(invasions())
     bot.run(os.environ['TOKEN'])
     bot.loop.run_forever()
