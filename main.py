@@ -42,19 +42,19 @@ async def invasions():
       for fdata in data:
         ID = fdata['id']
         invasions[ID] = fdata
-        node = fdata['node']
-        if fdata['vsInfestation']:
-          attacker = fdata['attackingFaction']
+        node = invasions[ID]['node']
+        if invasions[ID]['vsInfestation']:
+          attacker = invasions[ID]['attackingFaction']
           attackerRewardCount = ""
           attackerReward = "無獎勵"
         else:
-          attacker = fdata['attackingFaction']
-          attackerRewardCount = "x" + str(fdata['attackerReward']['countedItems'][0]['count'])
-          attackerReward = fdata['attackerReward']['countedItems'][0]['type']
-        defender = fdata['defendingFaction']
-        defenderRewardCount = "x" + str(fdata['defenderReward']['countedItems'][0]['count'])
-        defenderReward = fdata['defenderReward']['countedItems'][0]['type']
-        if ID not in db.keys() and not fdata['completed'] and fdata['eta'] != "Infinityd" and (attackerReward in target or defenderReward in target):
+          attacker = invasions[ID]['attackingFaction']
+          attackerRewardCount = "x" + str(invasions[ID]['attackerReward']['countedItems'][0]['count'])
+          attackerReward = invasions[ID]['attackerReward']['countedItems'][0]['type']
+        defender = invasions[ID]['defendingFaction']
+        defenderRewardCount = "x" + str(invasions[ID]['defenderReward']['countedItems'][0]['count'])
+        defenderReward = invasions[ID]['defenderReward']['countedItems'][0]['type']
+        if ID not in db.keys() and not invasions[ID]['completed'] and invasions[ID]['eta'] != "Infinityd" and (attackerReward in target or defenderReward in target):
           #-------------進攻方表情符號-----------------------
           attackerReward = Dict['Reward'].get(attackerReward,attackerReward)
           #-------------防守方表情符號-----------------------
