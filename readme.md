@@ -9,17 +9,16 @@
 
 + pip install discord
 
-+ pip install discord.py
-
 + pip install loguru
 
 
-#### 安裝完畢之後的設定
-#### 左方選單中replit.com的Secrets (Environment variables) 
-#### 請輸入三個必要的資訊在replit.com上的Secrets
-#### 1.TOKEN 2.機器人要標記的身分組ID(ALARM_ROLE_ID) 3.入侵提示頻道(ALARM_CHANNEL)
-#### 第一次報錯的話是正常的 請去main.py最下面 這行 keep_alive.awake('', True) 在''內放入你replit右上角小視窗的網址即可
-#### 弄成如下圖即可使用 細項可自行去main.py調整
+## 安裝完畢之後的設定
++ 左方選單中replit.com的Secrets (Environment variables) 
++ 請輸入三個必要的資訊在replit.com上的Secrets
++ 1.TOKEN 2.機器人要標記的身分組ID(ALARM_ROLE_ID) 3.入侵提示頻道(ALARM_CHANNEL)
++ 第一次報錯的話是正常的 請編輯main.py (給使用者改變設定的區域) keep_alive_url 在''內放入你replit右上角小視窗的網址即可
++ 當你去編輯main.py的時候也能對(給使用者改變設定的區域)區域內的變數進行調整來更動更新&編輯頻率
++ 弄成如下圖即可使用 細項可自行去main.py調整
 ![](invpic.png "這樣")
-#### 若要在品項前面或後面放入表情符號可以去rawDict.json修改
-#### 範例:"Orokin 反應爐藍圖":""<:Reactor:88888888888888888> Orokin 反應爐藍圖"
++ 若要在品項前面或後面放入表情符號可以去rawDict.json修改
++ 範例:"Orokin 反應爐藍圖":""<:Reactor:88888888888888888> Orokin 反應爐藍圖"
