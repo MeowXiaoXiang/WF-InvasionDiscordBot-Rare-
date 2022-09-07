@@ -169,16 +169,19 @@ async def on_disconnect():
     logger.info('機器人已關閉')
 
 def set_logger():
-    log_format = ('{time:YYYY-MM-DD HH:mm:ss!UTC} | '
-                  '<lvl>{level: ^9}</lvl>| '
-                  '{message}')
-    # logger.add(sys.stderr, level='INFO', format=log_format)
-    logger.add(f'./logs/bot.log',
-               rotation='7 day',
-               retention='30 days',
-               level='INFO',
-               encoding='UTF-8',
-               format=log_format)
+    log_format = (
+        '{time:YYYY-MM-DD HH:mm:ss} | '
+        '{level} | <{module}>:{function}:{line} | '
+        '{message}'
+    )
+    logger.add(
+        './logs/system.log',
+        rotation='7 day',
+        retention='30 days',
+        level='INFO',
+        encoding='UTF-8',
+        format=log_format
+    )
 
 def UTC_8_NOW():
     f = '%Y-%m-%d %H:%M'
@@ -188,7 +191,7 @@ def UTC_8_NOW():
 
 if __name__ == '__main__':
     set_logger()
-    #keep_alive.awake(f'{keep_alive_url}', True)
-    bot.loop.create_task(Preset_task())
-    bot.run(Imp_parm['TOKEN'])
-    bot.loop.run_forever()
+    try:
+        bot.run(str(Imp_parm['TOKEN']))
+    except Exception as e:
+        logger.critical(str(e))
