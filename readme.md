@@ -1,7 +1,7 @@
 # InvasionBot 
 #### WARFRAME稀有入侵偵測機器人
 
-## 請安裝下列的套件 或 直接使用install.cmd直接安裝
+## 請安裝Python以及下列的套件 或 直接使用install.cmd直接安裝
 
 + pip install discord
 + pip install requests
