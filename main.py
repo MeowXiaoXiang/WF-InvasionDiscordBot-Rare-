@@ -5,7 +5,7 @@ import requests
 import datetime as dt
 from opencc import OpenCC
 from loguru import logger
-from discord.ext import commands
+from discord.ext import commands, tasks
 from tinydb import TinyDB, where #tinydb請安裝3.15.2版本 pip install tinydb==3.15.2
 #----------給使用者改變設定的區域---------------------
 detection_time = 60 #偵測時間 目前每60秒一次
@@ -22,21 +22,26 @@ async def on_ready():
                                 name="Warframe 稀有入侵&警報&午夜電波") #更改這邊可以改變機器人的狀態
     await bot.change_presence(activity=activity)
     logger.info(f'{bot.user} | Ready!')
+    await bot.add_cog(Main_Task(bot))
 
 #----------主要重複執行的TASK-----------------
-async def Preset_task():
-    await bot.wait_until_ready()
-    while True:
+class Main_Task(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.target = ('Orokin 反應爐藍圖', 'Orokin 催化劑藍圖', 'Warframe 特殊功能槽連接器 藍圖', 'Forma 藍圖') #稀有入侵任務的獎勵目標
+        self.alarm_channel = bot.get_channel(int(Imp_parm['ALARM_CHANNEL']))#警報頻道ID
+        self.main_task.start()
+
+    def cog_unload(self):
+        self.main_task.cancel()
+
+    @tasks.loop(seconds=int(detection_time))
+    async def main_task(self):
         with TinyDB('db.json') as db:
             if not db.table('_default').contains(where('timer')):
                 db.table('_default').insert({'timer': 0})
                 print("已新增timer變數至db")
             inv_table = db.table('invasions')
-            print(bot.description)
-            target = [
-                'Orokin 反應爐藍圖', 'Orokin 催化劑藍圖', 'Warframe 特殊功能槽連接器 藍圖', 'Forma 藍圖'
-            ] #稀有入侵任務的獎勵目標
-            alarm_channel = bot.get_channel(int(Imp_parm['ALARM_CHANNEL']))#警報頻道ID
             #---------------------------------------------
             try:
                 #-----------------------------------------------------------------------
@@ -59,16 +64,16 @@ async def Preset_task():
                         attackerReward = "無獎勵"
                     else:
                         attacker = invasions[inv_ID]['attackingFaction']
-                        attackerRewardCount = "x" + str(invasions[inv_ID]['attackerReward']['countedItems'][0]['count'])
+                        attackerRewardCount = " x" + str(invasions[inv_ID]['attackerReward']['countedItems'][0]['count'])
                         attackerReward = invasions[inv_ID]['attackerReward']['countedItems'][0]['type']
                     defender = invasions[inv_ID]['defendingFaction']
-                    defenderRewardCount = "x" + str(invasions[inv_ID]['defenderReward']['countedItems'][0]['count'])
+                    defenderRewardCount = " x" + str(invasions[inv_ID]['defenderReward']['countedItems'][0]['count'])
                     defenderReward = invasions[inv_ID]['defenderReward']['countedItems'][0]['type']
                     #------------dbkeyslist------------------------------
                     inv_dbkeys=[]
                     for dbi in db.table('invasions').all():
                         inv_dbkeys.append("".join(dbi.keys())) 
-                    if inv_ID not in inv_dbkeys and not invasions[inv_ID]['completed'] and invasions[inv_ID]['eta'] != "Infinityd" and invasions[inv_ID]['eta'] != "-Infinityd" and (attackerReward in target or defenderReward in target):
+                    if inv_ID not in inv_dbkeys and not invasions[inv_ID]['completed'] and invasions[inv_ID]['eta'] != "Infinityd" and invasions[inv_ID]['eta'] != "-Infinityd" and (attackerReward in self.target or defenderReward in self.target):
                         #-------------進攻方表情符號-----------------------
                         attackerReward = Dict['Reward'].get(attackerReward, attackerReward)
                         #-------------防守方表情符號-----------------------
@@ -94,7 +99,7 @@ async def Preset_task():
                                 f"{'%.1f' % completion}%  |  {'%.1f' % (100 - completion)}%",
                                 inline=False)
                         embed.set_footer(text=f"資料更新時間：{UTC_8_NOW()}\n附註：每20分鐘更新一次資料")
-                        embedmsg = await alarm_channel.send("<@&" + str(Imp_parm['ALARM_ROLE_ID']) + ">",embed=embed)
+                        embedmsg = await self.alarm_channel.send(F"<@&{Imp_parm['ALARM_ROLE_ID']}>" if Imp_parm['ALARM_ROLE_ID'] else None, embed=embed)
                         logger.info("入侵任務\n" + str(inv_ID) + ' | ' + str(embedmsg.id) + ' | ' + node)
                         inv_table.insert({inv_ID: embedmsg.id})
                         print(UTC_8_NOW(), embedmsg.id,"稀有入侵訊息發送")
@@ -107,7 +112,7 @@ async def Preset_task():
                     #----------------------------------------------------------------
                     for ID in inv_dbkeys:
                         if ID not in invasions.keys() or invasions[ID]['completed']:
-                            message = await alarm_channel.fetch_message(inv_table.get(where(ID))[ID])
+                            message = await self.alarm_channel.fetch_message(inv_table.get(where(ID))[ID])
                             print(UTC_8_NOW(), message.id,"入侵任務結束")
                             for embed in message.embeds:
                                 raw = embed
@@ -117,25 +122,34 @@ async def Preset_task():
                                             inline=False)
                                 raw.color = 0xff0000
                                 raw.set_footer(
-                                    text=f"資料更新時間：{UTC_8_NOW()} [每20分刷新一次資料]")
+                                    text=f"資料更新時間：{UTC_8_NOW()}\n附註：每20分鐘更新一次資料")
                                 await message.edit(embed=raw)
                             inv_table.remove(where(ID))
                         else:
                             try:
-                                message = await alarm_channel.fetch_message(inv_table.get(where(ID))[ID])
-                                print(UTC_8_NOW(), message.id, invasions[ID]['node'])
+                                message = await self.alarm_channel.fetch_message(inv_table.get(where(ID))[ID])
+                                print(UTC_8_NOW(), message.id, invasions[ID]['node'],"入侵任務節點確認並更新")
                                 for embed in message.embeds:
                                     raw = embed
                                     raw.remove_field(2)
-                                    raw.add_field(
+                                    completion = invasions[ID]['completion']
+                                    if invasions[ID]['eta'] == "Infinityd" or invasions[ID]['eta'] == "-Infinityd":
+                                        raw.add_field(
+                                            name=f"進度",
+                                            value=f"排隊中",
+                                            inline=False)
+                                        raw.set_footer(text=f"資料更新時間：{UTC_8_NOW()}\n附註：每20分鐘更新一次資料")
+                                        raw.color = 0xffff00
+                                    else:
+                                        raw.add_field(
                                             name=f"進度",
                                             value=f"{'%.1f' % completion}%  |  {'%.1f' % (100 - completion)}%",
                                             inline=False)
-                                    raw.set_footer(text=f"資料更新時間：{UTC_8_NOW()} [每20分刷新一次資料]")
-                                    raw.color = 0x00ff00
+                                        raw.set_footer(text=f"資料更新時間：{UTC_8_NOW()}\n附註：每20分鐘更新一次資料")
+                                        raw.color = 0x00ff00
                                 await message.edit(embed=raw)
                             except Exception as e:
-                                print(UTC_8_NOW(), e, inv_table.get(where(ID))[ID])
+                                logger.error(UTC_8_NOW(), "稀有入侵任務資訊更新錯誤: ",str(e))
                     db.table('_default').update({'timer':0},where('timer'))
                 await asyncio.sleep(detection_time) #每60秒偵測一次
                 db.table('_default').update({'timer':db.table('_default').get(where('timer'))['timer'] + 1},where('timer'))
@@ -146,23 +160,29 @@ async def Preset_task():
 
 @bot.command(name="cleandb", aliases=['cleardb', '清除資料庫'])
 async def cleandb(ctx):
-    with TinyDB('db.json') as db:
-        print("開始清除db")
-        try:
-            db.purge_table('invasions')
-        except Exception as e:
-            logger.error(str(e))
+    if await bot.is_owner(ctx.author):
+        with TinyDB('db.json') as db:
+            print("開始清除db")
+            try:
+                db.purge_table('invasions')
+            except Exception as e:
+                logger.error(str(e))
+    else:
+        await ctx.reply("您不是機器人擁有者 請勿使用此功能")
 
 @bot.command(name="update", aliases=['resettimer', '重設timer'])
 async def update(ctx):
-    with TinyDB('db.json') as db:
-        print("重設timer為",edit_cycle)
-        try:
-            db.table('_default').update({'timer':edit_cycle},where('timer'))
-            print("timer目前為:", db.table('_default').get(where('timer'))['timer'])
-        except Exception as e:
-            logger.error(str(e))
-        print("重設timer完成")
+    if await bot.is_owner(ctx.author):
+        with TinyDB('db.json') as db:
+            print("重設timer為",edit_cycle)
+            try:
+                db.table('_default').update({'timer':edit_cycle},where('timer'))
+                print("timer目前為:", db.table('_default').get(where('timer'))['timer'])
+            except Exception as e:
+                logger.error(str(e))
+            print("重設timer完成")
+    else:
+        await ctx.reply("您不是機器人擁有者 請勿使用此功能")
 
 @bot.event
 async def on_disconnect():
